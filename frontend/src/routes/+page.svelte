@@ -1,20 +1,18 @@
 <script>
     import { socket } from '$lib/realtime';
 	import { onMount } from 'svelte';
-
-    let storyScores = [1, 2, 3, 5, 8, 13]
-    let epicScores = [20, 40, 100]
-
-    let isStory = true;
+    import { users as userStore } from '../store.js';
+	import LoginForm from '../components/LoginForm.svelte';
+	import UsersList from '../components/UsersList.svelte';
 
     let users = [];
-    let thisUser = '';
+    let username = '';
+    let isAdmin = false;
+    let loggedIn = false;
 
-    const addScore = points => e => {
-        console.log(points);
-
-        socket.emit("addScore", { username: 'username', points })
-    }
+    userStore.subscribe(prevUsers => {
+        users = [...prevUsers];
+    });
 
     let connected = false;
     let showConnectedBanner = false;
@@ -32,7 +30,9 @@
 
 
     const handleSubmit = () => {
+        socket.emit("login", { username, admin: isAdmin })
 
+        loggedIn = true;
     }
 
     onMount(() => {
@@ -40,35 +40,30 @@
             connected = true;
         })
 
-        socket.on("login", user => {
-            users.push(user);
+        socket.on('new-user', user => {
+            userStore.update(() => [...users, user])
+            // users = [...users, user]
         })
 
         // socket.on("vote", )
-    })
+    });
+
+
+
 </script>
-
-<style>
-
-</style>
 
 {#if showConnectedBanner}
     <div class="banner">Connected</div>
 {/if}
 
-<form on:submit|preventDefault={handleSubmit}>
-    <input type="text" value={}>
-</form>
+{#if !loggedIn}
+    <LoginForm {handleSubmit} bind:username={username} {isAdmin} />
+{:else}
+    <div>Ready</div>
+{/if}
 
+<UsersList {users} />
 
-<ul>
-    {#each users as user}
-        <li>{user}</li>
-    {/each}
-</ul>
+<style>
 
-<ul>
-    {#each (isStory ? storyScores : epicScores) as score}
-        <button on:click={addScore(score)}>{score}</button>
-    {/each}
-</ul>
+</style>
